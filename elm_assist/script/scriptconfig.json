@@ -1,0 +1,40 @@
+{
+    "scriptlist":[
+        {
+            "name":"test1",
+            "desc":"test1.py file for out one file"
+        },
+        {
+            "name":"test2",
+            "desc":"test2.py file"
+        }
+    ],
+
+    "itemdetail":{
+        "test1":{
+            "needargs": true,
+            "output": true,
+            "args":[
+                {
+                    "id":"sheet_index",
+                    "name":"sheet_index",
+                    "type":"number",
+                    "defaultvalue":"1"
+                }
+            ]
+        },
+
+        "test2":{
+            "needargs": true,
+            "output": true,
+            "args":[
+                {
+                    "id":"server",
+                    "name":"server",
+                    "type":"string",
+                    "defaultvalue":"ACT"
+                }
+            ]
+        }
+    }
+}

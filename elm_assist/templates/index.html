@@ -1,0 +1,208 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>ELM Assits</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<style>
+		.title {
+			text-align: center;
+		}
+		
+		.helpinfo {
+			text-align: center;
+			color: #D3D3D3;
+		}
+		
+		.item {
+			margin-left: auto;
+			margin-right: auto;
+			//background: yellow;
+			width: 600px;
+			text-align: center;
+		}
+		
+		.drop {
+			margin: 40px 25px;
+			padding: 10px;
+			border: 1px solid #BBB;
+			background: white;
+		}
+		
+		.drop_zone {
+			border: 2px dashed #BBB;
+			padding: 25px 5px;
+			text-align: center;
+			font-size: 20pt;
+			color: #BBB;
+			border-radius: 5px;
+		}
+        .input_args_hide{
+            display: none;
+        }
+        .input_args_show{
+            display: visible;
+        }
+
+	</style>
+</head>
+
+<body>
+	<h1 class="title">ELM Assits</h1>
+	<p class="helpinfo">请将文件拖入对应脚本的虚拟框中</p>
+	<div class="list">
+        {% set index = 1 %}
+        {% for scirpt in scriptlist %}
+        <div class="item">
+			<div class="drop">
+				<div class="drop_zone" data-scriptname="{{scirpt.name}}">{{loop.index}}. {{scirpt.desc}}</div>
+			</div>
+            <div class="input_args_hide">
+            <form class="argsform" action="/runscript/{{scirpt.name}}/" method="post" >
+                <input type="button" value="run" onclick="runscript(this.parentElement)" />
+            </form>
+            </div>
+		</div>
+        {% endfor %}
+
+	</div>
+	<script>
+            var targets = document.querySelectorAll('.drop_zone');
+            // alert(target)
+            for (var i = 0; i < targets.length; i++){
+                (function(target){
+                    target.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'copy';
+                        return false;
+                    });
+
+                    target.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+            
+                        var fileList = e.dataTransfer.files;
+                        console.log('fileList len' + fileList.length)
+                        if (fileList.length) {
+                            file = fileList[0];
+                            var formData = new FormData();
+                            formData.append("file", file);
+                            formData.append("scriptid", target.getAttribute('data-scriptname'))
+                            upload(formData, target)
+                        }
+                    });
+
+                })(targets[i]);
+            }
+
+            function upload(formData, target){
+                //alert(file);
+                //process.innerText = 100
+                var xhr = new XMLHttpRequest();  
+                xhr.open("POST", "/upload/", true);  
+                xhr.upload.onprogress = function (e) {  
+                    var percent = 0;  
+                    if (e.lengthComputable) {  
+                        //更新页面显示效果  
+                        percent = 100 * e.loaded / e.total;
+                        console.log(percent)
+                        // process.innerText = percent + '%'
+                    }  
+                };
+                
+                xhr.onload = function() {
+                    if (this.status == 200) {
+                        console.log("upload success \n" + this.responseText);
+                        //text = this.responseText
+                        var responseJson = JSON.parse(this.responseText)
+                        // 1. get detail info
+                        var detail = responseJson.detail;
+                        // update form
+                        var formEle = target.parentElement.parentElement.querySelector('.argsform')
+                        if (formEle.elements['uploadfilename'] == undefined) {
+                            var input = document.createElement('input')
+                            input.type = 'hidden'
+                            input.name = 'uploadfilename'
+                            input.value = responseJson.uploadfilename
+                            formEle.appendChild(input)
+                        } else {
+                            formEle.elements['uploadfilename'].value = responseJson.uploadfilename
+                        }
+                        // need input 
+                        if (detail.needargs) {
+                            // show args input TODO
+                            console.log('need args ' + detail.args)
+                            for (var i = 0 ;i < detail.args.length; i++) {
+                                var arg = detail.args[i]
+                                console.log(arg.id)
+                                createInputArgs(formEle, arg, 0)
+                            }
+                            var inputargs = target.parentElement.parentElement.querySelector('.input_args_hide');
+                            if (inputargs){
+                                console.log("change the input args class to show")
+                                inputargs.className = 'input_args_show'
+                            }
+                        } else {
+                            // call script  
+                            console.log('no need args')
+                            runscript(formEle)
+                        }
+
+                    } else {
+                        console.log(this.status)
+                    }
+                }
+                xhr.send(formData);
+            }
+
+            function createInputArgs(formEle, args, index) {
+                if (formEle.elements[args.name] == undefined) {
+                    var input = document.createElement('input')
+                    input.type = 'text'
+                    if (args.type == 'int') {
+                        input.type = 'number'
+                    }
+                    input.name = args.id
+                    input.value = args.defaultvalue
+                    formEle.appendChild(input)
+                }
+            }
+
+            // ajax get return status msg data
+            // scriptid, uploadfilename, formdata
+            // how to transfer args? form
+            // new FormData(id)
+            // f.append f.elements['']
+            function runscript(formElemtents) {
+                // start handle animial 
+                alert(formElemtents.action)
+                var xhr = new XMLHttpRequest();  
+                xhr.open("POST", formElemtents.action, true);  
+                xhr.onload = function() {
+                    if (this.status == 200) {
+                        alert(this.responseText)
+                        var responseJson = JSON.parse(this.responseText)
+                        var downfilename = responseJson.data
+                        downloadfile(downfilename)
+                    }
+                }
+                xhr.send(new FormData(formElemtents))
+            }
+
+            function downloadfile(filename) {
+                // the way three
+                fetch('/download/' + filename).then(res => res.blob().then(blob => {
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(blob);
+                    //var filename = filename;
+                    a.href = url;
+                    a.download = filename;
+                    console.log(filename)
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }))
+            }
+        </script>
+</body>
+<html>
