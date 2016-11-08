@@ -51,8 +51,32 @@ class BaseOneByOne:
         if self.db:
             self.db.close()
 
+class Test(BaseOneByOne):
+
+    def __init__(self, filename, sheet = 0, startline = 0, server = None):
+        super().__init__(filename)
+        print ("init in Test Obj")
+        self.query_data = list()
+
+    def readline(self, line_no, row):
+        print ("this is in Test ", line_no, row[0].value)
+        self.query_data.append(str(row[0].value))
+    
+    def create_sql(self):
+        pass
+
+    def run_query(self):
+        print("run query... " + ";".join(self.query_data))
+        self.query_data = "query date"
+
+    def handle_line(self, line_no, row):
+        print ("this is in handle", line_no, row[0].value)
+
+
+
 def run():
-    base1 = BaseOneByOne(filename = "/home/david/sample.xlsx", startline = 1)
+    # base1 = BaseOneByOne(filename = "/home/david/sample.xlsx", startline = 1)
+    base1 = Test(filename = "/home/david/sample.xlsx", startline = 1)
     base1.run()
 
 if __name__ == "__main__":
